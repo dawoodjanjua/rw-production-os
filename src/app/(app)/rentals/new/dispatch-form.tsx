@@ -17,7 +17,7 @@ export function DispatchForm({ clients, items, assets, shifts, currency, tz, now
   clients: Client[]; items: Item[]; assets: Asset[]; shifts: Shift[]; currency: string; tz: string; nowLocal: string; todayLocal: string; canOverride: boolean; defaultClient?: string;
 }) {
   const [d, setD] = useState<RentalDraft>({
-    client_id: defaultClient ?? "", rental_type: shifts.length ? "shift" : "full_day", shift_rule_id: shifts[0]?.id, shift_date: todayLocal,
+    client_id: defaultClient ?? "", rental_type: shifts.length ? "shift" : "full_day", shift_rule_id: shifts[0]?.id, shift_date: undefined,
     units: 1, start_local: nowLocal, dispatch_now: true, items: [],
   });
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -90,7 +90,8 @@ export function DispatchForm({ clients, items, assets, shifts, currency, tz, now
               <select value={d.shift_rule_id} onChange={(e) => set("shift_rule_id", e.target.value)} className="input">
                 {shifts.map((s) => <option key={s.id} value={s.id}>{s.name} · {clock(s.start_time)}–{clock(s.end_time)}{Number(s.rate_multiplier) !== 1 ? ` · ×${s.rate_multiplier}` : ""}</option>)}
               </select></label>
-            <label><span className="label">First shift date</span><input type="date" value={d.shift_date} onChange={(e) => set("shift_date", e.target.value)} className="input" /></label>
+            <label><span className="label">First shift date</span><input type="date" value={d.shift_date || quote?.shift_date || todayLocal} onChange={(e) => set("shift_date", e.target.value)} className="input" />
+              <span className="mt-1 block text-xs text-muted">{d.shift_date ? <button type="button" className="link" onClick={() => set("shift_date", undefined)}>Use next available shift</button> : "Automatic: the next shift that has not ended yet."}</span></label>
             <label><span className="label">Number of shifts</span><input type="number" min={1} max={366} value={d.units} onChange={(e) => set("units", Math.max(1, Number(e.target.value) || 1))} className="input" /></label>
           </>}
           {d.rental_type === "full_day" && (

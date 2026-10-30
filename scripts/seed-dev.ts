@@ -85,10 +85,18 @@ async function main() {
   const now = Date.now();
   const iso = (ms: number) => new Date(ms).toISOString();
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(new Date());
+  // Asia/Karachi is UTC+5 with no DST: wall-clock HH:MM on (today + dayOffset).
+  const pkt = (dayOffset: number, hhmm: string) => {
+    const d = new Date(Date.parse(today + "T00:00:00Z") + dayOffset * D).toISOString().slice(0, 10);
+    return { date: d, iso: new Date(`${d}T${hhmm}:00+05:00`).toISOString() };
+  };
+  // Shift B (17:00–23:00) dispatched at 17:30: today if that has passed, otherwise yesterday (then it is overdue too).
+  const shiftB = Date.now() > Date.parse(pkt(0, "17:30").iso) ? pkt(0, "17:30") : pkt(-1, "17:30");
+  const shiftA15 = pkt(-15, "11:00");
 
   // 1. Dispatched today on Shift B (due tonight) — Northlight
   const r1 = await rpc(staff.client, "create_rental", { p: { tenant_id: tenant, client_id: northlight.id, project_name: "Brand film shoot", location: "DHA Phase 6, Lahore", responsible_name: "Hamza Siddiqui", responsible_whatsapp: "+923211234567",
-    rental_type: "shift", shift_rule_id: shifts![1].id, shift_date: today, units: 1, start_at: iso(now - 2 * H), dispatch_now: true, deposit_amount: 5000,
+    rental_type: "shift", shift_rule_id: shifts![1].id, shift_date: shiftB.date, units: 1, start_at: shiftB.iso, dispatch_now: true, deposit_amount: 5000,
     items: [{ item_id: fx3.id, quantity: 1 }, { item_id: lens.id, quantity: 1 }, { item_id: cstand.id, quantity: 4 }], dispatch_condition: "All checked, sensor clean" } });
   // 2. Overdue custom rental — Frame Studio
   const r2 = await rpc(manager.client, "create_rental", { p: { tenant_id: tenant, client_id: frame.id, project_name: "Music video", rental_type: "custom", start_at: iso(now - 2 * D), custom_return_at: iso(now - 3 * H), dispatch_now: true,
@@ -110,14 +118,14 @@ async function main() {
   await rpc(manager.client, "issue_invoice", { p_invoice: inv5 });
   await rpc(manager.client, "record_payment", { p_invoice: inv5, p_amount: 20000, p_method: "bank_transfer", p_reference: "IBFT-48211", p_paid_at: iso(now - 3 * D) });
   // 6. Older rental, fully paid and closed — Blue Kite Media
-  const r6 = await rpc(manager.client, "create_rental", { p: { tenant_id: tenant, client_id: kiteMedia.id, project_name: "Corporate interview", rental_type: "shift", shift_rule_id: shifts![0].id, shift_date: new Date(now - 15 * D).toISOString().slice(0, 10), units: 1, start_at: iso(now - 15 * D), dispatch_now: true,
+  const r6 = await rpc(manager.client, "create_rental", { p: { tenant_id: tenant, client_id: kiteMedia.id, project_name: "Corporate interview", rental_type: "shift", shift_rule_id: shifts![0].id, shift_date: shiftA15.date, units: 1, start_at: shiftA15.iso, dispatch_now: true,
     items: [{ item_id: fx3.id, quantity: 1 }, { item_id: mic.id, quantity: 1 }] } });
   const { data: r6lines } = await c.from("rental_items").select("id,quantity").eq("rental_id", r6);
-  await rpc(staff.client, "record_return", { p: { rental_id: r6, returned_at: iso(now - 15 * D + 8 * H), lines: r6lines!.map((l) => ({ rental_item_id: l.id, returned: l.quantity })) } });
+  await rpc(staff.client, "record_return", { p: { rental_id: r6, returned_at: iso(Date.parse(shiftA15.iso) + 6 * H), lines: r6lines!.map((l) => ({ rental_item_id: l.id, returned: l.quantity })) } });
   const inv6 = await rpc(manager.client, "create_invoice_from_rental", { p_rental: r6 });
   await rpc(manager.client, "issue_invoice", { p_invoice: inv6 });
   const { data: i6 } = await c.from("invoices").select("total").eq("id", inv6).single();
-  await rpc(manager.client, "record_payment", { p_invoice: inv6, p_amount: i6!.total, p_method: "cash", p_paid_at: iso(now - 14 * D) });
+  await rpc(manager.client, "record_payment", { p_invoice: inv6, p_amount: i6!.total, p_method: "cash", p_paid_at: iso(Date.parse(shiftA15.iso) + D) });
   await rpc(manager.client, "close_rental", { p_rental: r6 });
   // 7. Manual invoice (draft) for crew services
   await rpc(manager.client, "create_invoice", { p: { tenant_id: tenant, client_id: northlight.id, project_name: "Brand film shoot", items: [{ description: "Gaffer + 2 assistants — production shift", quantity: 1, unit_price: 35000 }, { description: "Transport (Lahore)", quantity: 1, unit_price: 6000 }] } });

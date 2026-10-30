@@ -48,4 +48,7 @@ multiplier, `rental_events`, and `rental_items` return quantities.
 - **2026-10-28 — v0.1 pilot.** Initial schema (7 migrations), RLS, transactional rental/invoice functions, Next.js app,
   PDF, manual WhatsApp handoff, dry-run reminder processor, Cloud API boundary and webhook, admin console, tests.
   Fixes found in testing: `created_by` FKs set to `ON DELETE SET NULL`; the audit trigger skips cascaded tenant deletes.
+- **2026-10-30.** Migration `20261030000001_shift_date_auto.sql`: when no shift date is chosen, a shift rental uses the
+  next shift that has not ended (an evening dispatch for an 11 AM–5 PM shift → tomorrow). The dispatch form shows the
+  chosen date and can be overridden. Seed script and tests no longer depend on the time of day.
 - **Environment variables added:** see `.env.example`.

@@ -62,6 +62,16 @@ describe("deadlines and pricing", () => {
     await owner.client.from("tenant_settings").update({ timezone: "Asia/Karachi" }).eq("tenant_id", tenant);
   });
 
+  it("without a chosen date, a shift rental uses the next shift that has not ended", async () => {
+    const q = async (start: string) => (await owner.client.rpc("quote_rental", { p: { tenant_id: tenant, rental_type: "shift",
+      shift_rule_id: inv.shiftA.id, units: 1, start_at: start, items: [{ item_id: inv.grip.id, quantity: 1 }] } })).data;
+    // Shift A is 11:00–17:00 PKT. Dispatch 10:00 PKT → today 17:00; dispatch 20:00 PKT → tomorrow 17:00.
+    expect(new Date((await q("2026-11-02T05:00:00Z")).expected_return_at).toISOString()).toBe("2026-11-02T12:00:00.000Z");
+    const evening = await q("2026-11-02T15:00:00Z");
+    expect(evening.shift_date).toBe("2026-11-03");
+    expect(new Date(evening.expected_return_at).toISOString()).toBe("2026-11-03T12:00:00.000Z");
+  });
+
   it("custom duration bills per started day", async () => {
     const { data } = await owner.client.rpc("quote_rental", { p: {
       tenant_id: tenant, rental_type: "custom", start_at: "2026-11-02T06:00:00Z", custom_return_at: "2026-11-03T10:00:00Z",
@@ -86,7 +96,7 @@ describe("dispatch, availability and returns", () => {
   it("staff can dispatch; availability drops", async () => {
     const { data, error } = await staff.client.rpc("create_rental", { p: {
       tenant_id: tenant, client_id: inv.client.id, project_name: "Brand film shoot", rental_type: "shift",
-      shift_rule_id: inv.shiftA.id, units: 1, dispatch_now: true, responsible_whatsapp: "+923331112223",
+      shift_rule_id: inv.shiftA.id, units: 2, dispatch_now: true, responsible_whatsapp: "+923331112223",
       items: [{ item_id: inv.cam.id, quantity: 2 }, { item_id: inv.grip.id, quantity: 3 }],
     } });
     expect(error).toBeNull();
@@ -94,7 +104,8 @@ describe("dispatch, availability and returns", () => {
     const r = await rental(rid);
     expect(r.status).toBe("dispatched");
     expect(r.reference).toMatch(/^RNT-\d{4}$/);
-    expect(Number(r.total)).toBe(2 * 12000 + 3 * 1500);
+    expect(Number(r.total)).toBe(2 * (2 * 12000 + 3 * 1500));
+    expect(new Date(r.expected_return_at).getTime()).toBeGreaterThan(Date.now());
     expect((await avail(inv.cam.id)).qty_available).toBe(0);
     expect((await avail(inv.grip.id)).qty_available).toBe(1);
     const { data: proj } = await owner.client.from("projects").select("name").eq("tenant_id", tenant);
@@ -153,9 +164,9 @@ describe("dispatch, availability and returns", () => {
     const { error } = await manager.client.rpc("extend_rental", { p_rental: rid, p_additional_units: 1, p_reason: "Shoot ran over" });
     expect(error).toBeNull();
     const after = await rental(rid);
-    expect(after.units).toBe(2);
+    expect(after.units).toBe(3);
     expect(new Date(after.expected_return_at).getTime() - new Date(before.expected_return_at).getTime()).toBe(86400000);
-    expect(Number(after.subtotal)).toBe(2 * (2 * 12000 + 3 * 1500));
+    expect(Number(after.subtotal)).toBe(3 * (2 * 12000 + 3 * 1500));
     const { data: rem } = await owner.client.from("scheduled_reminders").select("status,deadline_at").eq("rental_id", rid);
     const active = rem!.filter((x) => x.status === "scheduled");
     expect(active.length).toBe(3);

@@ -38,7 +38,7 @@ function toPayload(d: RentalDraft, tenantId: string, tz: string) {
 }
 
 export type Quote = {
-  start_at: string; expected_return_at: string; units: number; billing_basis: "shift" | "day"; subtotal: number; currency: string;
+  start_at: string; expected_return_at: string; shift_date: string | null; units: number; billing_basis: "shift" | "day"; subtotal: number; currency: string;
   shift: { name: string; start_time: string; end_time: string; rate_multiplier: number } | null;
   lines: { item_id: string; name: string; quantity: number; unit_rate: number; rate_source: string; units: number; line_total: number }[];
 };
