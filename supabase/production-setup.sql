@@ -2118,6 +2118,16 @@ end $$;
 revoke execute on function public.quote_rental(jsonb), public.create_rental(jsonb) from public, anon;
 grant execute on function public.quote_rental(jsonb), public.create_rental(jsonb) to authenticated;
 
+-- ===== 20261030000002_service_role_grants.sql =====
+-- RW Production OS · Explicit grants for the server (service role).
+-- Hosted Supabase projects may not inherit the default function privileges that local development has,
+-- so grant the server-only functions to service_role explicitly. Users (anon/authenticated) still cannot call them.
+grant usage on schema app to service_role;
+grant execute on all functions in schema app to service_role;
+grant execute on all functions in schema public to service_role;
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+
 -- ===== migration history =====
 create schema if not exists supabase_migrations;
 create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);
@@ -2129,3 +2139,4 @@ insert into supabase_migrations.schema_migrations (version, name) values ('20261
 insert into supabase_migrations.schema_migrations (version, name) values ('20261028000006', 'rls') on conflict do nothing;
 insert into supabase_migrations.schema_migrations (version, name) values ('20261028000007', 'storage') on conflict do nothing;
 insert into supabase_migrations.schema_migrations (version, name) values ('20261030000001', 'shift_date_auto') on conflict do nothing;
+insert into supabase_migrations.schema_migrations (version, name) values ('20261030000002', 'service_role_grants') on conflict do nothing;
