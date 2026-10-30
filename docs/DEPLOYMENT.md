@@ -12,7 +12,11 @@ Total time: about 45–60 minutes the first time.
 1. Go to https://supabase.com → **New project**. Region: closest to Pakistan (e.g. *Singapore* or *Mumbai*).
    Choose a strong database password and store it in your password manager.
 2. Wait for the project to finish provisioning.
-3. **Apply the migrations** from your computer (one-time; needs Node.js):
+3. **Create the database tables (easiest, no tools needed):** open `supabase/production-setup.sql` on GitHub, click
+   *Copy raw file*, then in Supabase go to **SQL Editor → New query**, paste, and click **Run**. Expect "Success. No rows
+   returned". Run it only once, on the new empty project.
+
+   **Alternative, from your computer** (one-time; needs Node.js):
    ```bash
    npx supabase login
    npx supabase link --project-ref YOUR-PROJECT-REF
