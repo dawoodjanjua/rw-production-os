@@ -41,10 +41,10 @@ export default async function TenantAdmin({ params }: { params: Promise<{ id: st
           <p className="mb-3 text-sm text-muted">Status: <b>{conn?.status ?? "not_connected"}</b>{cred && <> · token ending …{cred.token_last4}, updated {new Date(cred.updated_at).toLocaleString()}</>}. Enter the tenant&apos;s own WhatsApp Cloud API details after they complete Meta onboarding. The token is encrypted (AES-256-GCM) and can never be read back.</p>
           <AdminForm action={connectWhatsApp} submit="Save connection" className="grid gap-2 sm:grid-cols-2">
             <input type="hidden" name="tenant_id" value={t.id} />
-            <input name="phone_number_id" required defaultValue={conn?.phone_number_id ?? ""} placeholder="Phone number ID" className="input" />
-            <input name="waba_id" defaultValue={conn?.waba_id ?? ""} placeholder="WhatsApp Business Account ID" className="input" />
-            <input name="display_phone_number" defaultValue={conn?.display_phone_number ?? ""} placeholder="Display number, e.g. +92 300 1234567" className="input" />
-            <input name="access_token" type="password" autoComplete="off" placeholder={cred ? "Leave empty to keep current token" : "System user access token"} className="input" />
+            <input name="phone_number_id" required autoComplete="off" inputMode="numeric" defaultValue={conn?.phone_number_id ?? ""} placeholder="Phone number ID" className="input" />
+            <input name="waba_id" autoComplete="off" inputMode="numeric" defaultValue={conn?.waba_id ?? ""} placeholder="WhatsApp Business Account ID" className="input" />
+            <input name="display_phone_number" autoComplete="off" defaultValue={conn?.display_phone_number ?? ""} placeholder="Display number, e.g. +92 300 1234567" className="input" />
+            <input name="access_token" type="password" autoComplete="new-password" data-1p-ignore data-lpignore="true" placeholder={cred ? "Leave empty to keep current token" : "System user access token"} className="input" />
           </AdminForm>
           {cred && <AdminForm action={disconnectWhatsApp} submit="Disconnect & delete token" className="mt-4 border-t border-line pt-4"><input type="hidden" name="tenant_id" value={t.id} /></AdminForm>}
         </Card>

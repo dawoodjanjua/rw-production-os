@@ -50,6 +50,9 @@ export async function connectWhatsApp(_: AdminState, fd: FormData): Promise<Admi
     const token = str(fd, "access_token");
     const phoneNumberId = str(fd, "phone_number_id");
     if (!/^\d{5,30}$/.test(phoneNumberId)) return { error: "Phone number ID must be the numeric ID from WhatsApp Manager." };
+    const wabaId = optStr(fd, "waba_id");
+    if (wabaId && !/^\d{5,30}$/.test(wabaId)) return { error: "WhatsApp Business Account ID must be numeric (check that the browser did not auto-fill an email here)." };
+    if (token && !/^EA[A-Za-z0-9]{40,}$/.test(token)) return { error: "That does not look like a Meta access token (they start with EA…). Check that the browser did not auto-fill a password here." };
     if (token) {
       const { error } = await db.from("messaging_credentials").upsert({ tenant_id: tenantId, access_token_encrypted: encryptSecret(token), token_last4: token.slice(-4), updated_at: new Date().toISOString() });
       if (error) return { error: friendlyError(error) };
